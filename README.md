@@ -27,11 +27,24 @@ A terminal user interface for browsing and downloading files from AWS S3, with f
 
 Download the latest release for your platform from the [Releases](https://github.com/natevick/s3-tui/releases) page.
 
-### From Source
+```bash
+# macOS/Linux - make executable and move to PATH
+chmod +x s3tui-*
+sudo mv s3tui-* /usr/local/bin/s3tui
+
+# Or without sudo, add to your local bin
+mkdir -p ~/.local/bin
+mv s3tui-* ~/.local/bin/s3tui
+# Add to PATH in ~/.zshrc or ~/.bashrc: export PATH="$HOME/.local/bin:$PATH"
+```
+
+### From Source (requires Go)
 
 ```bash
 go install github.com/natevick/s3-tui/cmd/s3tui@latest
 ```
+
+This installs to `$GOPATH/bin` (usually `~/go/bin`), which should be in your PATH.
 
 Or clone and build:
 
