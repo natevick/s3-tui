@@ -213,9 +213,9 @@ func (pw *ProgressWriter) WriteAt(p []byte, off int64) (int, error) {
 
 // DownloadFile downloads a single file from S3 to the local filesystem
 func (c *Client) DownloadFile(ctx context.Context, bucket, key, localPath string, onProgress func(DownloadProgress)) error {
-	// Ensure directory exists
+	// Ensure directory exists with secure permissions
 	dir := filepath.Dir(localPath)
-	if err := os.MkdirAll(dir, 0755); err != nil {
+	if err := os.MkdirAll(dir, 0750); err != nil {
 		return fmt.Errorf("failed to create directory: %w", err)
 	}
 
@@ -225,8 +225,8 @@ func (c *Client) DownloadFile(ctx context.Context, bucket, key, localPath string
 		return err
 	}
 
-	// Create local file
-	file, err := os.Create(localPath)
+	// Create local file with secure permissions (owner read/write only)
+	file, err := os.OpenFile(localPath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return fmt.Errorf("failed to create local file: %w", err)
 	}

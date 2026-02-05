@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/natevick/s3-tui/internal/security"
 )
 
 // Bookmark represents a saved S3 location
@@ -74,7 +75,7 @@ func getConfigDir() (string, error) {
 	}
 
 	configDir := filepath.Join(homeDir, ".config", "s3-tui")
-	if err := os.MkdirAll(configDir, 0755); err != nil {
+	if err := os.MkdirAll(configDir, 0700); err != nil {
 		return "", fmt.Errorf("failed to create config directory: %w", err)
 	}
 
@@ -98,7 +99,7 @@ func (s *Store) Save() error {
 		return fmt.Errorf("failed to marshal bookmarks: %w", err)
 	}
 
-	if err := os.WriteFile(s.path, data, 0644); err != nil {
+	if err := os.WriteFile(s.path, data, 0600); err != nil {
 		return fmt.Errorf("failed to write bookmarks: %w", err)
 	}
 
@@ -107,6 +108,14 @@ func (s *Store) Save() error {
 
 // Add creates a new bookmark
 func (s *Store) Add(name, bucket, prefix string) (Bookmark, error) {
+	// Validate inputs
+	if err := security.ValidBookmarkName(name); err != nil {
+		return Bookmark{}, err
+	}
+	if err := security.ValidBucketName(bucket); err != nil {
+		return Bookmark{}, err
+	}
+
 	bookmark := Bookmark{
 		ID:        uuid.New().String(),
 		Name:      name,

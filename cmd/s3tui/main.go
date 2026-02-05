@@ -6,6 +6,7 @@ import (
 	"os"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/natevick/s3-tui/internal/security"
 	"github.com/natevick/s3-tui/internal/tui"
 )
 
@@ -25,6 +26,16 @@ func main() {
 	if *showVersion {
 		fmt.Printf("s3-tui version %s\n", version)
 		os.Exit(0)
+	}
+
+	// Validate inputs
+	if err := security.ValidProfileName(*profile); err != nil {
+		fmt.Fprintf(os.Stderr, "Invalid profile: %v\n", err)
+		os.Exit(1)
+	}
+	if err := security.ValidBucketName(*bucket); err != nil {
+		fmt.Fprintf(os.Stderr, "Invalid bucket: %v\n", err)
+		os.Exit(1)
 	}
 
 	// Create TUI model

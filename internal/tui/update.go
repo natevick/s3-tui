@@ -10,6 +10,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/natevick/s3-tui/internal/aws"
 	"github.com/natevick/s3-tui/internal/download"
+	"github.com/natevick/s3-tui/internal/security"
 	"github.com/natevick/s3-tui/internal/views/bookmarksview"
 	"github.com/natevick/s3-tui/internal/views/browser"
 	"github.com/natevick/s3-tui/internal/views/buckets"
@@ -85,7 +86,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case profilesReadyMsg:
 		// Load available profiles
 		if err := m.profilesView.LoadProfiles(); err != nil {
-			m.errorMsg = fmt.Sprintf("Failed to load profiles: %v", err)
+			m.errorMsg = security.SanitizeErrorGeneric(err, "Failed to load profiles")
 			m.errorTimeout = time.Now().Add(5 * time.Second)
 		}
 		return m, nil
@@ -118,7 +119,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case BucketsLoadedMsg:
 		if msg.Err != nil {
 			m.bucketsView.SetError(msg.Err)
-			m.errorMsg = msg.Err.Error()
+			m.errorMsg = security.SanitizeErrorGeneric(msg.Err, "Loading buckets")
 			m.errorTimeout = time.Now().Add(5 * time.Second)
 		} else {
 			m.bucketsView.SetBuckets(msg.Buckets)
@@ -128,7 +129,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	case ObjectsLoadedMsg:
 		if msg.Err != nil {
 			m.browserView.SetError(msg.Err)
-			m.errorMsg = msg.Err.Error()
+			m.errorMsg = security.SanitizeErrorGeneric(msg.Err, "Loading objects")
 			m.errorTimeout = time.Now().Add(5 * time.Second)
 		} else {
 			m.browserView.SetObjects(msg.Objects)
@@ -158,7 +159,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 	case ErrorMsg:
 		if msg.Err != nil {
-			m.errorMsg = msg.Err.Error()
+			m.errorMsg = security.SanitizeError(msg.Err)
 			m.errorTimeout = time.Now().Add(5 * time.Second)
 		}
 		return m, nil
@@ -252,7 +253,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case bookmarksview.ActionDelete:
 			if m.bookmarkStore != nil {
 				if err := m.bookmarkStore.Remove(id); err != nil {
-					m.errorMsg = err.Error()
+					m.errorMsg = security.SanitizeErrorGeneric(err, "Removing bookmark")
 					m.errorTimeout = time.Now().Add(5 * time.Second)
 				} else {
 					m.bookmarksView.Refresh()
@@ -503,7 +504,7 @@ func (m Model) executePromptAction() (tea.Model, tea.Cmd) {
 		if m.bookmarkStore != nil {
 			_, err := m.bookmarkStore.Add(input, m.currentBucket, m.currentPrefix)
 			if err != nil {
-				m.errorMsg = err.Error()
+				m.errorMsg = security.SanitizeErrorGeneric(err, "Adding bookmark")
 				m.errorTimeout = time.Now().Add(5 * time.Second)
 			} else {
 				m.statusMsg = "Bookmark added"
@@ -515,7 +516,7 @@ func (m Model) executePromptAction() (tea.Model, tea.Cmd) {
 		if m.bookmarkStore != nil && m.pendingBookmarkBucket != "" {
 			_, err := m.bookmarkStore.Add(input, m.pendingBookmarkBucket, "")
 			if err != nil {
-				m.errorMsg = err.Error()
+				m.errorMsg = security.SanitizeErrorGeneric(err, "Adding bookmark")
 				m.errorTimeout = time.Now().Add(5 * time.Second)
 			} else {
 				m.statusMsg = "Bookmark added"

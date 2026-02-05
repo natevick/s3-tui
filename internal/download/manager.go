@@ -3,13 +3,13 @@ package download
 import (
 	"context"
 	"fmt"
-	"path/filepath"
 	"strings"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	"github.com/natevick/s3-tui/internal/aws"
+	"github.com/natevick/s3-tui/internal/security"
 )
 
 // Status represents the state of a download
@@ -207,9 +207,12 @@ func (m *Manager) DownloadPrefix(ctx context.Context, bucket, prefix, localDir s
 	files := make(map[string]*FileProgress)
 	for _, obj := range objects {
 		totalBytes += obj.Size
-		// Calculate local path relative to prefix
+		// Calculate local path relative to prefix with path traversal protection
 		relPath := strings.TrimPrefix(obj.Key, prefix)
-		localPath := filepath.Join(localDir, relPath)
+		localPath, err := security.SafePath(localDir, relPath)
+		if err != nil {
+			return fmt.Errorf("unsafe path for key %s: %w", obj.Key, err)
+		}
 		files[obj.Key] = &FileProgress{
 			Key:       obj.Key,
 			LocalPath: localPath,
@@ -278,9 +281,12 @@ func (m *Manager) DownloadMultiple(ctx context.Context, bucket string, objects [
 
 	for _, obj := range allObjects {
 		totalBytes += obj.Size
-		// Calculate local path relative to prefix
+		// Calculate local path relative to prefix with path traversal protection
 		relPath := strings.TrimPrefix(obj.Key, prefix)
-		localPath := filepath.Join(localDir, relPath)
+		localPath, err := security.SafePath(localDir, relPath)
+		if err != nil {
+			return fmt.Errorf("unsafe path for key %s: %w", obj.Key, err)
+		}
 		files[obj.Key] = &FileProgress{
 			Key:       obj.Key,
 			LocalPath: localPath,
@@ -340,16 +346,35 @@ func (m *Manager) downloadWithWorkers(ctx context.Context, bucket string, object
 				default:
 				}
 
-				relPath := strings.TrimPrefix(obj.Key, prefix)
-				localPath := filepath.Join(localDir, relPath)
-
+				// Get the pre-validated local path from FileProgress
 				m.progressMu.Lock()
 				m.progress.CurrentFile = obj.Key
+				var localPath string
 				if fp, ok := m.progress.Files[obj.Key]; ok {
+					localPath = fp.LocalPath
 					fp.Status = StatusInProgress
 					fp.StartedAt = time.Now()
 				}
 				m.progressMu.Unlock()
+
+				if localPath == "" {
+					// Fallback with validation if not in progress map
+					relPath := strings.TrimPrefix(obj.Key, prefix)
+					var err error
+					localPath, err = security.SafePath(localDir, relPath)
+					if err != nil {
+						atomic.AddInt32(&failedFiles, 1)
+						m.progressMu.Lock()
+						if fp, ok := m.progress.Files[obj.Key]; ok {
+							fp.Status = StatusFailed
+							fp.Error = err
+						}
+						m.progress.FailedFiles = int(atomic.LoadInt32(&failedFiles))
+						m.progressMu.Unlock()
+						continue
+					}
+				}
+
 				m.notifyProgress()
 
 				err := m.client.DownloadFile(ctx, bucket, obj.Key, localPath, func(dp aws.DownloadProgress) {
