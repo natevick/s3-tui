@@ -23,6 +23,12 @@ A terminal user interface for browsing and downloading files from AWS S3, with f
 
 ## Installation
 
+### Quick Install (macOS/Linux)
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/natevick/s3-tui/main/install.sh | bash
+```
+
 ### From Binary
 
 Download the latest release for your platform from the [Releases](https://github.com/natevick/s3-tui/releases) page.
