@@ -1,0 +1,590 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>stui - S3 Terminal UI</title>
+    <meta name="description" content="A terminal user interface for browsing and downloading files from AWS S3, with full support for AWS IAM Identity Center (SSO).">
+    <link rel="icon" href="mascot.svg">
+    <style>
+        :root {
+            --bg-primary: #0d1117;
+            --bg-secondary: #161b22;
+            --bg-tertiary: #21262d;
+            --text-primary: #e6edf3;
+            --text-secondary: #8b949e;
+            --accent: #58a6ff;
+            --accent-hover: #79b8ff;
+            --green: #3fb950;
+            --purple: #a371f7;
+            --orange: #d29922;
+            --border: #30363d;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', Helvetica, Arial, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* Navigation */
+        nav {
+            padding: 16px 0;
+            border-bottom: 1px solid var(--border);
+            position: sticky;
+            top: 0;
+            background: var(--bg-primary);
+            z-index: 100;
+        }
+
+        nav .container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            color: var(--text-primary);
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .logo-icon {
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+
+        nav a {
+            color: var(--text-secondary);
+            text-decoration: none;
+            margin-left: 24px;
+            transition: color 0.2s;
+        }
+
+        nav a:hover {
+            color: var(--text-primary);
+        }
+
+        /* Hero */
+        .hero {
+            padding: 80px 0 60px;
+            text-align: center;
+        }
+
+        .hero-mascot {
+            margin-bottom: 16px;
+            image-rendering: pixelated;
+            image-rendering: crisp-edges;
+        }
+
+        .hero h1 {
+            font-size: 48px;
+            font-weight: 800;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, var(--accent), var(--purple));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .hero .tagline {
+            font-size: 20px;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto 32px;
+        }
+
+        .install-box {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px 24px;
+            display: inline-flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .install-box code {
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 16px;
+            color: var(--green);
+        }
+
+        .copy-btn {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            color: var(--text-secondary);
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .copy-btn:hover {
+            background: var(--border);
+            color: var(--text-primary);
+        }
+
+        .copy-btn.copied {
+            color: var(--green);
+        }
+
+        .hero-buttons {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: var(--bg-primary);
+        }
+
+        .btn-primary:hover {
+            background: var(--accent-hover);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        .btn-secondary:hover {
+            background: var(--border);
+        }
+
+        /* Demo */
+        .demo {
+            padding: 40px 0 80px;
+            text-align: center;
+        }
+
+        .demo-container {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            overflow: hidden;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .demo-header {
+            background: var(--bg-tertiary);
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .demo-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+        }
+
+        .demo-dot.red { background: #ff5f56; }
+        .demo-dot.yellow { background: #ffbd2e; }
+        .demo-dot.green { background: #27c93f; }
+
+        .demo-title {
+            flex: 1;
+            text-align: center;
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        .demo-container img {
+            width: 100%;
+            display: block;
+        }
+
+        /* Features */
+        .features {
+            padding: 80px 0;
+            border-top: 1px solid var(--border);
+        }
+
+        .features h2 {
+            text-align: center;
+            font-size: 32px;
+            margin-bottom: 48px;
+        }
+
+        .features-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+        }
+
+        .feature-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+        }
+
+        .feature-icon {
+            font-size: 32px;
+            margin-bottom: 12px;
+        }
+
+        .feature-card h3 {
+            font-size: 18px;
+            margin-bottom: 8px;
+        }
+
+        .feature-card p {
+            color: var(--text-secondary);
+            font-size: 14px;
+        }
+
+        /* Installation */
+        .installation {
+            padding: 80px 0;
+            border-top: 1px solid var(--border);
+        }
+
+        .installation h2 {
+            text-align: center;
+            font-size: 32px;
+            margin-bottom: 48px;
+        }
+
+        .install-methods {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .install-method {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 24px;
+        }
+
+        .install-method h3 {
+            font-size: 18px;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .code-block {
+            background: var(--bg-primary);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 16px;
+            overflow-x: auto;
+        }
+
+        .code-block code {
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 14px;
+            color: var(--text-primary);
+        }
+
+        .code-block .comment {
+            color: var(--text-secondary);
+        }
+
+        /* Keyboard shortcuts */
+        .shortcuts {
+            padding: 80px 0;
+            border-top: 1px solid var(--border);
+        }
+
+        .shortcuts h2 {
+            text-align: center;
+            font-size: 32px;
+            margin-bottom: 48px;
+        }
+
+        .shortcuts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 24px;
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        .shortcut-group h3 {
+            font-size: 16px;
+            color: var(--text-secondary);
+            margin-bottom: 16px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .shortcut-list {
+            list-style: none;
+        }
+
+        .shortcut-list li {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 8px 0;
+            border-bottom: 1px solid var(--border);
+        }
+
+        .shortcut-list li:last-child {
+            border-bottom: none;
+        }
+
+        kbd {
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-family: 'SF Mono', 'Fira Code', monospace;
+            font-size: 12px;
+        }
+
+        /* Footer */
+        footer {
+            padding: 40px 0;
+            border-top: 1px solid var(--border);
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+
+        footer a:hover {
+            text-decoration: underline;
+        }
+
+        /* Responsive */
+        @media (max-width: 768px) {
+            .hero h1 {
+                font-size: 36px;
+            }
+
+            .hero .tagline {
+                font-size: 18px;
+            }
+
+            .install-box {
+                flex-direction: column;
+                width: 100%;
+                max-width: 400px;
+            }
+
+            .install-box code {
+                font-size: 14px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <nav>
+        <div class="container">
+            <a href="/" class="logo">
+                <img src="mascot.svg" alt="stui mascot" width="32" height="32" class="logo-icon">
+                stui
+            </a>
+            <div>
+                <a href="https://github.com/natevick/stui">GitHub</a>
+                <a href="https://github.com/natevick/stui/releases">Releases</a>
+                <a href="https://github.com/natevick/stui#readme">Docs</a>
+            </div>
+        </div>
+    </nav>
+
+    <section class="hero">
+        <div class="container">
+            <img src="mascot.svg" alt="Stu the bucket" class="hero-mascot" width="96" height="96">
+            <h1>stui</h1>
+            <p class="tagline">A terminal UI for browsing and downloading files from AWS S3, with full support for IAM Identity Center (SSO).</p>
+
+            <div class="install-box">
+                <code id="install-cmd">curl -fsSL https://stui.app/install.sh | bash</code>
+                <button class="copy-btn" onclick="copyInstall()">Copy</button>
+            </div>
+
+            <div class="hero-buttons">
+                <a href="https://github.com/natevick/stui/releases" class="btn btn-primary">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 15l-5-5 1.41-1.41L11 14.17l7.59-7.59L20 8l-9 9z"/></svg>
+                    Download
+                </a>
+                <a href="https://github.com/natevick/stui" class="btn btn-secondary">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/></svg>
+                    View on GitHub
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section class="demo">
+        <div class="container">
+            <div class="demo-container">
+                <div class="demo-header">
+                    <div class="demo-dot red"></div>
+                    <div class="demo-dot yellow"></div>
+                    <div class="demo-dot green"></div>
+                    <span class="demo-title">stui --demo</span>
+                </div>
+                <img src="demo.gif" alt="stui demo showing S3 bucket browsing">
+            </div>
+        </div>
+    </section>
+
+    <section class="features">
+        <div class="container">
+            <h2>Features</h2>
+            <div class="features-grid">
+                <div class="feature-card">
+                    <div class="feature-icon">📂</div>
+                    <h3>Browse S3</h3>
+                    <p>Navigate your S3 buckets and prefixes like a file browser. Quick and intuitive.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔐</div>
+                    <h3>SSO Support</h3>
+                    <p>Full support for AWS IAM Identity Center. Works with your existing SSO profiles.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">⬇️</div>
+                    <h3>Download Files</h3>
+                    <p>Download individual files or entire prefixes with progress tracking.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔄</div>
+                    <h3>Sync Folders</h3>
+                    <p>Sync S3 prefixes to local directories. Only downloads changed files using ETag comparison.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">📑</div>
+                    <h3>Multi-select</h3>
+                    <p>Select multiple files and folders with spacebar for batch operations.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">🔖</div>
+                    <h3>Bookmarks</h3>
+                    <p>Save frequently accessed locations for quick access later.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="installation">
+        <div class="container">
+            <h2>Installation</h2>
+            <div class="install-methods">
+                <div class="install-method">
+                    <h3>🚀 Quick Install</h3>
+                    <div class="code-block">
+                        <code>curl -fsSL https://stui.app/install.sh | bash</code>
+                    </div>
+                </div>
+                <div class="install-method">
+                    <h3>📦 From Source</h3>
+                    <div class="code-block">
+                        <code>go install github.com/natevick/stui/cmd/stui@latest</code>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="shortcuts">
+        <div class="container">
+            <h2>Keyboard Shortcuts</h2>
+            <div class="shortcuts-grid">
+                <div class="shortcut-group">
+                    <h3>Navigation</h3>
+                    <ul class="shortcut-list">
+                        <li><span>Move up/down</span> <span><kbd>↑</kbd> <kbd>↓</kbd> or <kbd>k</kbd> <kbd>j</kbd></span></li>
+                        <li><span>Open folder</span> <kbd>Enter</kbd></li>
+                        <li><span>Go back</span> <kbd>Backspace</kbd></li>
+                        <li><span>Page up/down</span> <span><kbd>PgUp</kbd> <kbd>PgDn</kbd></span></li>
+                    </ul>
+                </div>
+                <div class="shortcut-group">
+                    <h3>Actions</h3>
+                    <ul class="shortcut-list">
+                        <li><span>Select item</span> <kbd>Space</kbd></li>
+                        <li><span>Download</span> <kbd>d</kbd></li>
+                        <li><span>Sync to local</span> <kbd>s</kbd></li>
+                        <li><span>Add bookmark</span> <kbd>b</kbd></li>
+                        <li><span>Refresh</span> <kbd>r</kbd></li>
+                    </ul>
+                </div>
+                <div class="shortcut-group">
+                    <h3>General</h3>
+                    <ul class="shortcut-list">
+                        <li><span>Switch tabs</span> <span><kbd>Tab</kbd> or <kbd>←</kbd> <kbd>→</kbd></span></li>
+                        <li><span>Show help</span> <kbd>?</kbd></li>
+                        <li><span>Filter list</span> <kbd>/</kbd></li>
+                        <li><span>Quit</span> <kbd>q</kbd></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <footer>
+        <div class="container">
+            <p>
+                Made with ☕ by <a href="https://github.com/natevick">@natevick</a> ·
+                <a href="https://github.com/natevick/stui">GitHub</a> ·
+                MIT License
+            </p>
+        </div>
+    </footer>
+
+    <script>
+        function copyInstall() {
+            const cmd = document.getElementById('install-cmd').textContent;
+            navigator.clipboard.writeText(cmd).then(() => {
+                const btn = document.querySelector('.copy-btn');
+                btn.textContent = 'Copied!';
+                btn.classList.add('copied');
+                setTimeout(() => {
+                    btn.textContent = 'Copy';
+                    btn.classList.remove('copied');
+                }, 2000);
+            });
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="128" height="128">
+  <!-- Pixel art bucket mascot "Stu" -->
+  <!-- Each "pixel" is a 2x2 unit -->
+  <style>
+    .bucket { fill: #58a6ff; }
+    .bucket-dark { fill: #1f6feb; }
+    .bucket-light { fill: #79b8ff; }
+    .eye { fill: #0d1117; }
+    .smile { fill: #0d1117; }
+    .highlight { fill: #ffffff; }
+  </style>
+
+  <!-- Bucket body -->
+  <rect class="bucket" x="6" y="10" width="20" height="16"/>
+
+  <!-- Bucket rim (top) -->
+  <rect class="bucket-dark" x="4" y="8" width="24" height="4"/>
+  <rect class="bucket-light" x="6" y="8" width="20" height="2"/>
+
+  <!-- Bucket bottom curve -->
+  <rect class="bucket-dark" x="8" y="26" width="16" height="2"/>
+
+  <!-- Left shadow -->
+  <rect class="bucket-dark" x="6" y="12" width="2" height="14"/>
+
+  <!-- Right highlight -->
+  <rect class="bucket-light" x="22" y="12" width="2" height="12"/>
+
+  <!-- Eyes -->
+  <rect class="eye" x="10" y="14" width="4" height="4"/>
+  <rect class="eye" x="18" y="14" width="4" height="4"/>
+
+  <!-- Eye highlights -->
+  <rect class="highlight" x="10" y="14" width="2" height="2"/>
+  <rect class="highlight" x="18" y="14" width="2" height="2"/>
+
+  <!-- Smile -->
+  <rect class="smile" x="12" y="22" width="8" height="2"/>
+  <rect class="smile" x="10" y="20" width="2" height="2"/>
+  <rect class="smile" x="20" y="20" width="2" height="2"/>
+
+  <!-- Handle -->
+  <rect class="bucket-dark" x="2" y="4" width="2" height="6"/>
+  <rect class="bucket-dark" x="28" y="4" width="2" height="6"/>
+  <rect class="bucket-dark" x="4" y="2" width="24" height="2"/>
+</svg>
